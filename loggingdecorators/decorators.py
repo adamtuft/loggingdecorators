@@ -39,15 +39,15 @@ def on_init(logger: Union[str, loggerClass]="logger", level=logging.DEBUG, logar
 
             to_call(self, *args, **kwargs)
 
-            logger = getattr(self, logger) if isinstance(logger, str) else logger
+            _logger = getattr(self, logger) if isinstance(logger, str) else logger
 
-            if not isinstance(logger, loggerClass):
-                raise TypeError(f"logger argument had unexpected type {type(logger)}, expected {loggerClass}")
+            if not isinstance(_logger, loggerClass):
+                raise TypeError(f"logger argument had unexpected type {type(_logger)}, expected {loggerClass}")
 
             if logargs:
-                logger.log(level, f"init: {self.__class__.__name__}({args=}, {kwargs=})", stacklevel=total_depth)
+                _logger.log(level, f"init: {self.__class__.__name__}({args=}, {kwargs=})", stacklevel=total_depth)
             else:
-                logger.log(level, f"init: {self.__class__.__name__}()", stacklevel=total_depth)
+                _logger.log(level, f"init: {self.__class__.__name__}()", stacklevel=total_depth)
 
         if is_class:
             setattr(constructor, "__init__", init_wrapper)
