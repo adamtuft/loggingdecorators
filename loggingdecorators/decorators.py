@@ -58,7 +58,7 @@ def on_init(logger: Union[str, loggerClass]="logger", level=logging.DEBUG, logar
     return decorator
 
 
-def on_call(logger: loggerClass, level=logging.DEBUG, logargs=True, depth=0):
+def on_call(logger: loggerClass, level=logging.DEBUG, logargs=True, msg: str="", depth=0):
     """
     When applied to a function, decorate it with a wrapper which logs the call using the given logger at the specified
     level.
@@ -86,7 +86,10 @@ def on_call(logger: loggerClass, level=logging.DEBUG, logargs=True, depth=0):
 
         @wraps(func)
         def wrapper(*args, **kwargs):
-            logger.log(level, f"calling {func} with {len(args)} arg(s) and {len(kwargs)} kwarg(s)", stacklevel=total_depth)
+            content = f"calling {func} with {len(args)} arg(s) and {len(kwargs)} kwarg(s) "
+            if msg:
+                content = f"{content} ({msg})"
+            logger.log(level, content, stacklevel=total_depth)
             if logargs:
                 for n, arg in enumerate(args):
                     logger.log(level, f" - arg {n:>2}: {type(arg)} {arg}", stacklevel=total_depth)
