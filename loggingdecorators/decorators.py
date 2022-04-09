@@ -1,16 +1,18 @@
 from functools import wraps
-from typing import Union
+from typing import Union, Callable
 import logging
+import inspect
 
 loggerClass = logging.getLoggerClass()
 
 
-def on_init(logger: Union[str, loggerClass]="logger", level=logging.DEBUG, logargs=True, depth=0):
+def on_init(logger: Union[str, loggerClass, Callable]="logger", level=logging.DEBUG, logargs=True, depth=0):
     """
     When applied to a class or an __init__ method, decorate it with a wrapper which logs the __init__ call using the
     given logger at the specified level.
 
     If "logger" is a string, look up an attribute of this name in the initialised object and use it to log the message.
+    If "logger" is a function, call it to obtain a reference to a logger instance.
     Otherwise, assume "logger" is an instance of a logger from the logging library and use it to log the message.
 
     If logargs is True, the message contains the arguments passed to __init__.
@@ -28,18 +30,17 @@ def on_init(logger: Union[str, loggerClass]="logger", level=logging.DEBUG, logar
         if not callable(constructor):
             raise TypeError(f"{constructor} does not appear to be callable.")
 
-        is_class = isinstance(constructor, type)  # class itself was passed in
+        is_class = inspect.isclass(constructor)
 
-        if is_class:
-            to_call = getattr(constructor, "__init__")
-        else:
-            to_call = constructor
+        to_call = getattr(constructor, "__init__") if is_class else constructor
 
         def init_wrapper(self, *args, **kwargs):
 
             to_call(self, *args, **kwargs)
 
-            _logger = getattr(self, logger) if isinstance(logger, str) else logger
+            _logger = getattr(self, logger) if isinstance(logger, str) \
+                else logger() if inspect.isfunction(logger) \
+                else logger
 
             if not isinstance(_logger, loggerClass):
                 raise TypeError(f"logger argument had unexpected type {type(_logger)}, expected {loggerClass}")
@@ -58,12 +59,13 @@ def on_init(logger: Union[str, loggerClass]="logger", level=logging.DEBUG, logar
     return decorator
 
 
-def on_call(logger: loggerClass, level=logging.DEBUG, logargs=True, msg: str="", depth=0):
+def on_call(logger: Union[loggerClass, Callable], level=logging.DEBUG, logargs=True, msg: str="", depth=0):
     """
     When applied to a function, decorate it with a wrapper which logs the call using the given logger at the specified
     level.
 
-    The "logger" argument must be an instance of a logger from the logging library.
+    The "logger" argument must be an instance of a logger from the logging library, or a function which returns an
+    instance of a logger.
 
     If logargs is True, log the function arguments, one per line.
 
@@ -78,23 +80,26 @@ def on_call(logger: loggerClass, level=logging.DEBUG, logargs=True, msg: str="",
         if not callable(func):
             raise TypeError(f"{func} does not appear to be callable.")
 
-        if not isinstance(logger, loggerClass):
-            raise TypeError(f"logger argument had unexpected type {type(logger)}, expected {loggerClass}")
-
         if getattr(func, "__name__") == "__repr__":
             raise RuntimeError("Cannot apply to __repr__ as this will cause infinite recursion!")
 
         @wraps(func)
         def wrapper(*args, **kwargs):
+
+            _logger = logger() if inspect.isfunction(logger) else logger
+
+            if not isinstance(_logger, loggerClass):
+                raise TypeError(f"logger argument had unexpected type {type(_logger)}, expected {loggerClass}")
+
             content = f"calling {func} with {len(args)} arg(s) and {len(kwargs)} kwarg(s) "
             if msg:
                 content = f"{content} ({msg})"
-            logger.log(level, content, stacklevel=total_depth)
+            _logger.log(level, content, stacklevel=total_depth)
             if logargs:
                 for n, arg in enumerate(args):
-                    logger.log(level, f" - arg {n:>2}: {type(arg)} {arg}", stacklevel=total_depth)
+                    _logger.log(level, f" - arg {n:>2}: {type(arg)} {arg}", stacklevel=total_depth)
                 for m, (key, item) in enumerate(kwargs.items()):
-                    logger.log(level, f" - kwarg {m:>2}: {type(item)} {key}={item}", stacklevel=total_depth)
+                    _logger.log(level, f" - kwarg {m:>2}: {type(item)} {key}={item}", stacklevel=total_depth)
             return func(*args, **kwargs)
 
         return wrapper

@@ -12,7 +12,7 @@ Note that these decorators perform no logging setup, this is left to the user.
 
 ```python
 on_init(
-    logger: typing.Union[str, logging.Logger]="logger",
+    logger: typing.Union[str, logging.Logger, callable]="logger",
     level=logging.DEBUG,
     logargs=True,
     depth=0
@@ -22,7 +22,7 @@ on_init(
 When applied to a class or an `__init__` method, decorate it with a wrapper which logs the `__init__` call using the
 given logger at the specified level.
 
-If `logger` is a string, look up an attribute of this name in the initialised object and use it to log the message.
+If `logger` is a string, look up an attribute of this name in the initialised object and use it to log the message. If `logger` is a function, call it to obtain a reference to a logger instance.
 Otherwise, assume `logger` is an instance of a logger from the logging library and use it to log the message.
 
 If `logargs` is `True`, the message contains the arguments passed to `__init__`.
@@ -97,7 +97,7 @@ class LoggingWidget(LoggingMixin, Widget):
 
 ```python
 on_call(
-    logger: logging.Logger,
+    logger: typing.Union[logging.Logger, callable],
     level=logging.DEBUG,
     logargs=True,
     depth=0
@@ -107,7 +107,7 @@ on_call(
 When applied to a function, decorate it with a wrapper which logs the call using the given logger at the specified
 level.
 
-The `logger` argument must be an instance of a logger from the logging library.
+The `logger` argument must be an instance of a logger from the logging library, or a function which returns an instance of a logger.
 
 If `logargs` is `True`, log the function arguments, one per line.
 
