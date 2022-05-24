@@ -34,6 +34,7 @@ def on_init(logger: Union[str, loggerClass, Callable]="logger", level=logging.DE
 
         to_call = getattr(constructor, "__init__") if is_class else constructor
 
+        @wraps(constructor)
         def init_wrapper(self, *args, **kwargs):
 
             to_call(self, *args, **kwargs)
