@@ -37,8 +37,6 @@ def on_init(logger: Union[str, loggerClass, Callable]="logger", level=logging.DE
         @wraps(constructor)
         def init_wrapper(self, *args, **kwargs):
 
-            to_call(self, *args, **kwargs)
-
             _logger = getattr(self, logger) if isinstance(logger, str) \
                 else logger() if inspect.isfunction(logger) \
                 else logger
@@ -50,6 +48,8 @@ def on_init(logger: Union[str, loggerClass, Callable]="logger", level=logging.DE
                 _logger.log(level, f"init: {self.__class__.__name__}({args=}, {kwargs=})", stacklevel=total_depth)
             else:
                 _logger.log(level, f"init: {self.__class__.__name__}()", stacklevel=total_depth)
+
+            to_call(self, *args, **kwargs)
 
         if is_class:
             setattr(constructor, "__init__", init_wrapper)
